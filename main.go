@@ -46,6 +46,14 @@ func cleanOutput(r io.Reader) []string {
 			continue
 		}
 
+		if strings.HasPrefix(t, "can't load package:") {
+			continue
+		}
+
+		if strings.HasSuffix(t, "too many errors") {
+			continue
+		}
+
 		lines = append(lines, strings.TrimPrefix(t, "./"))
 	}
 
@@ -69,7 +77,7 @@ func build(path string) (lines []string, buildFailed bool, err error) {
 	if err := cmd.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			switch ee.ProcessState.ExitCode() {
-			case 2:
+			case 2, 1:
 				return cleanOutput(buf), true, nil
 			case 0:
 				return nil, false, nil
@@ -94,7 +102,7 @@ func main() {
 	// go build experienced compilation failures
 	// treat it like a linter failure
 	if failed {
-		fmt.Print(strings.Join(output, "\n"))
+		fmt.Println(strings.Join(output, "\n"))
 		os.Exit(1)
 	}
 
