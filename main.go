@@ -29,11 +29,8 @@ func homeDir() string {
 }
 
 // cleans up the go build output to look like linter errors
-// returns the lines to output (to be joined by newlines)
-func cleanOutput(r io.Reader) []string {
+func printCleanOutput(r io.Reader, w io.Writer) {
 	scanner := bufio.NewScanner(r)
-
-	var lines []string
 
 	for scanner.Scan() {
 		t := scanner.Text()
@@ -54,17 +51,25 @@ func cleanOutput(r io.Reader) []string {
 			continue
 		}
 
-		lines = append(lines, strings.TrimPrefix(t, "./"))
+		fmt.Fprintln(w, strings.TrimPrefix(t, "./"))
 	}
+}
 
-	return lines
+func printOutput(r io.Reader, w io.Writer) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		fmt.Fprintln(w, scanner.Text())
+	}
 }
 
 // go build
-func build(path string) (lines []string, buildFailed bool, err error) {
+// if there is a failure it does not return control to the program
+func build(path string) {
 	goBin, err := exec.LookPath("go")
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to get go binary path: %w", err)
+		fmt.Fprintf(os.Stderr, "failed to get go binary path: %v", err)
+		os.Exit(2)
 	}
 
 	buf := &bytes.Buffer{}
@@ -78,38 +83,30 @@ func build(path string) (lines []string, buildFailed bool, err error) {
 		if ee, ok := err.(*exec.ExitError); ok {
 			switch ee.ProcessState.ExitCode() {
 			case 2, 1:
-				return cleanOutput(buf), true, nil
-			case 0:
-				return nil, false, nil
+				printCleanOutput(buf, os.Stdout)
+				os.Exit(1)
+
+			case 0: // not possible, but just in case...
+				return
+
 			default:
-				return cleanOutput(buf), false, err
+				printOutput(buf, os.Stderr)
+				os.Exit(2)
 			}
 		}
 
-		return nil, false, err
+		fmt.Fprintf(os.Stderr, "failed to run go build: %v", err)
+		os.Exit(2)
 	}
-
-	return nil, false, nil
 }
 
 func main() {
-	output, failed, err := build(os.Args[len(os.Args)-1])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to invoke go build: %v", err)
-		os.Exit(2)
-	}
-
-	// go build experienced compilation failures
-	// treat it like a linter failure
-	if failed {
-		fmt.Println(strings.Join(output, "\n"))
-		os.Exit(1)
-	}
+	build(os.Args[len(os.Args)-1])
 
 	// hand off to the real golangci-lint
 	// TODO(theckman): consider importing golangci-lint directly and invoking their library code
 	//                 their package main is tiny!!
-	err = syscall.Exec(filepath.Join(homeDir(), "/go/bin/golangci-lint"), os.Args, os.Environ()) // #nosec
+	err := syscall.Exec(filepath.Join(homeDir(), "/go/bin/golangci-lint"), os.Args, os.Environ()) // #nosec
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to execve golangci-lint: %v", err)
 		os.Exit(2)
