@@ -1,5 +1,5 @@
 build:
-	go build -o golangci-lint .
+	go build -ldflags="-s -w" -o golangci-lint .
 
 install:
 	mv golangci-lint ${HOME}/bin/golangci-lint

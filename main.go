@@ -103,10 +103,12 @@ func build(path string) {
 func main() {
 	build(os.Args[len(os.Args)-1])
 
+	bin := filepath.Join(homeDir(), "/go/bin/golangci-lint")
+
 	// hand off to the real golangci-lint
 	// TODO(theckman): consider importing golangci-lint directly and invoking their library code
 	//                 their package main is tiny!!
-	err := syscall.Exec(filepath.Join(homeDir(), "/go/bin/golangci-lint"), os.Args, os.Environ()) // #nosec
+	err := syscall.Exec(bin, os.Args, os.Environ()) // #nosec
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to execve golangci-lint: %v", err)
 		os.Exit(2)
