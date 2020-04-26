@@ -63,6 +63,51 @@ func printOutput(r io.Reader, w io.Writer) {
 	}
 }
 
+// builder is a generic go command runner to check that the source builds
+//
+// if the program failed to build, and looks like a syntax error of sorts, it
+// prints that to os.Stdout and returns failed: true, err: nil
+//
+// if the go command failed for another reason, it echoes that out to Stderr
+// and does an os.Exit(2)
+//
+// if it doesn't even seem like it called the Go command, it returns that back up the stack
+func builder(goBin, mode, path string, flags ...string) (failed bool, err error) {
+	buf := &bytes.Buffer{}
+
+	f := make([]string, 0, len(flags)+2)
+	f = append(f, mode)
+	f = append(f, flags...)
+	f = append(f, path)
+
+	cmd := exec.Command(goBin, f...) // #nosec
+	cmd.Stdout = buf
+	cmd.Stderr = buf
+
+	// parse the error code to guess whether it was syntax related
+	// ExitCode 2 looks to be that
+	if err = cmd.Run(); err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			switch ee.ProcessState.ExitCode() {
+			case 2, 1:
+				printCleanOutput(buf, os.Stdout)
+				return true, nil
+
+			case 0: // not possible, but just in case...
+				return false, nil
+
+			default:
+				printOutput(buf, os.Stderr)
+				os.Exit(2)
+			}
+		}
+
+		return true, fmt.Errorf("failed to run go build: %v", err)
+	}
+
+	return false, nil
+}
+
 // go build
 // if there is a failure it does not return control to the program
 func build(path string) {
@@ -72,31 +117,22 @@ func build(path string) {
 		os.Exit(2)
 	}
 
-	buf := &bytes.Buffer{}
-	cmd := exec.Command(goBin, "build", "-o", "/dev/null", path) // #nosec
-	cmd.Stdout = buf
-	cmd.Stderr = buf
-
-	// parse the error code to guess whether it was syntax related
-	// ExitCode 2 looks to be that
-	if err := cmd.Run(); err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			switch ee.ProcessState.ExitCode() {
-			case 2, 1:
-				printCleanOutput(buf, os.Stdout)
-				os.Exit(1)
-
-			case 0: // not possible, but just in case...
-				return
-
-			default:
-				printOutput(buf, os.Stderr)
-				os.Exit(2)
-			}
-		}
-
-		fmt.Fprintf(os.Stderr, "failed to run go build: %v", err)
+	// check that `go build` compiles
+	failedB, err := builder(goBin, "build", path, "-o", "/dev/null")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to build source: %v\n", err)
 		os.Exit(2)
+	}
+
+	// check that `go test` compiles
+	failedT, err := builder(goBin, "test", path, "-c")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to build test source: %v\n", err)
+		os.Exit(2)
+	}
+
+	if failedB || failedT {
+		os.Exit(1)
 	}
 }
 
