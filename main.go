@@ -28,6 +28,15 @@ func homeDir() string {
 	}
 }
 
+func gopath() string {
+	g := os.Getenv("GOPATH")
+	if len(g) > 0 {
+		return g
+	}
+
+	return filepath.Join(homeDir(), "go")
+}
+
 // cleans up the go build output to look like linter errors
 func printCleanOutput(r io.Reader, w io.Writer) {
 	scanner := bufio.NewScanner(r)
@@ -139,7 +148,7 @@ func build(path string) {
 func main() {
 	build(os.Args[len(os.Args)-1])
 
-	bin := filepath.Join(homeDir(), "/go/bin/golangci-lint")
+	bin := filepath.Join(gopath(), "/bin/golangci-lint")
 
 	// hand off to the real golangci-lint
 	// TODO(theckman): consider importing golangci-lint directly and invoking their library code
