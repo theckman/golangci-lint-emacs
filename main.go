@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -17,6 +18,11 @@ func homeDir() string {
 	// try to get the homedir from the environment
 	if h := os.Getenv("HOME"); h != "" {
 		return h
+	}
+
+	u, err := user.Current()
+	if err == nil {
+		return u.HomeDir
 	}
 
 	// reasonable default fallbacks for me
