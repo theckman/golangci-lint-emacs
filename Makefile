@@ -15,4 +15,3 @@ default: build install
 .DEFAULT_GOAL := default
 
 .PHONY: build install default
-
