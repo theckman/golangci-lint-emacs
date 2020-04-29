@@ -5,7 +5,7 @@ install:
 	mv golangci-lint ${HOME}/bin/golangci-lint
 
 clean:
-	rm golangci-lint
+	rm -f golangci-lint
 
 clean_install: clean
 	rm ${HOME}/bin/golangci-lint
