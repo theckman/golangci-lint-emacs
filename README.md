@@ -38,6 +38,7 @@ make
 This project was built for use on my personal systems, and may not be suitable
 for use on yours. The following assumptions are present:
 
-* `$GOPATH` is `$HOME/go`
-* `$HOME/go/bin/golangci-lint` is where the real `golangci-lint` is installed
-* `$HOME/bin` is on the `PATH` before `$HOME/go/bin`, so this wrapper should be installed in `$HOME/bin`
+* `GOPATH` environment variable is set where Emacs is running
+* `$HOME/bin/golangci-lint` is where this wrapper should be installed
+* `$GOPATH/bin/golangci-lint` is where the real `golangci-lint` is installed
+* `$HOME/bin` is on the `PATH` before `$GOPATH/bin` (e.g., `$HOME/bin:$GOPATH/bin:/usr/local/bin:...`)
