@@ -21,7 +21,7 @@ func homeDir() string {
 	}
 
 	u, err := user.Current()
-	if err == nil {
+	if err == nil && len(u.HomeDir) > 0 {
 		return u.HomeDir
 	}
 
