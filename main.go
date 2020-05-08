@@ -140,7 +140,7 @@ func build(path string) {
 	}
 
 	// check that `go test` compiles
-	failedT, err := builder(goBin, "test", path, "-c")
+	failedT, err := builder(goBin, "test", path, "-c", "-o", "/dev/null")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build test source: %v\n", err)
 		os.Exit(2)
