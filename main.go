@@ -104,7 +104,7 @@ func build(path string) {
 
 	/*
 		// check that `go build` compiles
-		failedB, err := builder(goBin, "build", path, "-o", "/dev/null")
+		failedB, err := builder(goBin, "build", path, "-o", os.DevNull)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to build source: %v\n", err)
 			os.Exit(2)
@@ -112,7 +112,7 @@ func build(path string) {
 	*/
 
 	// check that `go test` compiles
-	failedT, err := builder(goBin, "test", path, "-c", "-o", "/dev/null")
+	failedT, err := builder(goBin, "test", path, "-c", "-o", os.DevNull)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build test source: %v\n", err)
 		os.Exit(2)
