@@ -7,41 +7,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/user"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"syscall"
+
+	"github.com/golangci/golangci-lint/pkg/commands"
+	"github.com/golangci/golangci-lint/pkg/exitcodes"
 )
-
-func homeDir() string {
-	// try to get the homedir from the environment
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-
-	u, err := user.Current()
-	if err == nil && len(u.HomeDir) > 0 {
-		return u.HomeDir
-	}
-
-	// reasonable default fallbacks for me
-	switch runtime.GOOS {
-	case "linux":
-		return "/home/theckman"
-	default:
-		return "/Users/theckman"
-	}
-}
-
-func gopath() string {
-	g := os.Getenv("GOPATH")
-	if len(g) > 0 {
-		return g
-	}
-
-	return filepath.Join(homeDir(), "go")
-}
 
 // cleans up the go build output to look like linter errors
 func printCleanOutput(r io.Reader, w io.Writer) {
@@ -132,12 +102,14 @@ func build(path string) {
 		os.Exit(2)
 	}
 
-	// check that `go build` compiles
-	failedB, err := builder(goBin, "build", path, "-o", "/dev/null")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to build source: %v\n", err)
-		os.Exit(2)
-	}
+	/*
+		// check that `go build` compiles
+		failedB, err := builder(goBin, "build", path, "-o", "/dev/null")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to build source: %v\n", err)
+			os.Exit(2)
+		}
+	*/
 
 	// check that `go test` compiles
 	failedT, err := builder(goBin, "test", path, "-c", "-o", "/dev/null")
@@ -146,7 +118,8 @@ func build(path string) {
 		os.Exit(2)
 	}
 
-	if failedB || failedT {
+	// if failedB || failedT {
+	if failedT {
 		os.Exit(1)
 	}
 }
@@ -154,14 +127,10 @@ func build(path string) {
 func main() {
 	build(os.Args[len(os.Args)-1])
 
-	bin := filepath.Join(gopath(), "/bin/golangci-lint")
+	e := commands.NewExecutor("golangci-lint-emacs", "?", "")
 
-	// hand off to the real golangci-lint
-	// TODO(theckman): consider importing golangci-lint directly and invoking their library code
-	//                 their package main is tiny!!
-	err := syscall.Exec(bin, os.Args, os.Environ()) // #nosec
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to execve golangci-lint: %v", err)
-		os.Exit(2)
+	if err := e.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed executing command with error %v\n", err)
+		os.Exit(exitcodes.Failure)
 	}
 }
