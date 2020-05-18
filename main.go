@@ -7,43 +7,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/user"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/golangci/golangci-lint/pkg/commands"
 	"github.com/golangci/golangci-lint/pkg/exitcodes"
 )
-
-func homeDir() string {
-	// try to get the homedir from the environment
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-
-	u, err := user.Current()
-	if err == nil && len(u.HomeDir) > 0 {
-		return u.HomeDir
-	}
-
-	// reasonable default fallbacks for me
-	switch runtime.GOOS {
-	case "linux":
-		return "/home/theckman"
-	default:
-		return "/Users/theckman"
-	}
-}
-
-func gopath() string {
-	g := os.Getenv("GOPATH")
-	if len(g) > 0 {
-		return g
-	}
-
-	return filepath.Join(homeDir(), "go")
-}
 
 // cleans up the go build output to look like linter errors
 func printCleanOutput(r io.Reader, w io.Writer) {
