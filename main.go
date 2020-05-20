@@ -17,8 +17,15 @@ import (
 func printCleanOutput(r io.Reader, w io.Writer) {
 	scanner := bufio.NewScanner(r)
 
+	var allowNext bool
+
 	for scanner.Scan() {
 		t := scanner.Text()
+		if allowNext {
+			allowNext = false
+			fmt.Fprintf(w, " %s", strings.TrimSpace(t))
+			continue
+		}
 
 		if strings.HasPrefix(t, "#") {
 			continue
@@ -36,7 +43,15 @@ func printCleanOutput(r io.Reader, w io.Writer) {
 			continue
 		}
 
-		fmt.Fprintln(w, strings.TrimPrefix(t, "./"))
+		if strings.HasSuffix(t, " in assignment:") {
+			allowNext = true
+		}
+
+		fmt.Fprint(w, strings.TrimPrefix(t, "./"))
+
+		if !allowNext {
+			fmt.Fprintln(w)
+		}
 	}
 }
 
